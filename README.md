@@ -26,6 +26,46 @@ under load. TriageBot reads an issue's title and body and instantly proposes:
 it runs offline with **no API keys**, is fully deterministic, and every decision
 is auditable and unit-tested.
 
+## Demo / Screenshots
+
+A quick visual tour of the app and the four triage severity cases it produces.
+
+### Sign up & sign in
+
+Accounts are created client-side (no server-stored passwords), then you land on
+the triage dashboard.
+
+| Sign in | Create account |
+|---------|----------------|
+| ![Login screen](docs/screenshots/01-login.png) | ![Sign-up form](docs/screenshots/02-signup.png) |
+
+### Live triage suggestion
+
+As you type an issue title, TriageBot previews the suggested **severity**,
+**labels**, and **owner** — each with a reason — before you save.
+
+![Live triage suggestion for an urgent issue](docs/screenshots/03-triage-preview.png)
+
+### All severity cases
+
+The dashboard lists every triaged issue with colour-coded badges. The examples
+below cover all four severity levels and the label/owner routing:
+
+| Example issue | Severity | Labels | Owner |
+|---------------|----------|--------|-------|
+| *Production outage: user data loss due to security vulnerability* | `urgent` | `security` | `security-team` |
+| *API returns 500 on login, users can't sign in* | `high` | `bug` | `backend-team` |
+| *Improve slow dashboard performance* | `medium` | `performance` | `frontend-team` |
+| *Fix typo in README documentation* | `low` | `documentation` | `docs-team` |
+
+![Dashboard listing all four severity cases](docs/screenshots/05-dashboard-list.png)
+
+### Light theme
+
+A built-in light / dark theme toggle:
+
+![Dashboard in light theme](docs/screenshots/06-dashboard-light.png)
+
 ## Quick start
 
 ```bash
