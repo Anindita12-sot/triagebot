@@ -1,0 +1,36 @@
+---
+description: Core TriageBot conventions - architecture layering, explainability, and the test gate
+alwaysApply: true
+---
+
+# TriageBot Conventions
+
+TriageBot is a rule-based issue-triage assistant (severity + labels + owner).
+See `constitution.md` and `AGENTS.md` for full context.
+
+## Layering (do not violate)
+
+`app/triage.py` (pure logic) → `app/repository.py` (SQLite) → `app/main.py` (HTTP)
+
+- Put triage/business logic ONLY in `app/triage.py`.
+- Keep `app/triage.py` free of I/O: no `sqlite3`, `fastapi`, `os`, or network imports.
+- Route handlers in `app/main.py` stay thin — validate, call, return.
+
+## Explainability
+
+Every triage decision MUST populate `reason`. Never return a classification
+without an explanation.
+
+```python
+# ❌ BAD - no reason
+return TriageResult(severity="high", labels=["bug"], owner="backend-team")
+
+# ✅ GOOD - explains each choice
+return TriageResult(severity="high", labels=["bug"], owner="backend-team",
+                    reason="severity=high (matched 'crash'); labels: bug ('crash'); owner=backend-team (matched 'api')")
+```
+
+## The test gate
+
+- Adding or changing a keyword rule REQUIRES a matching test in `tests/test_triage.py`.
+- Run `ruff check .` and `pytest` before considering any change done. Both must pass.

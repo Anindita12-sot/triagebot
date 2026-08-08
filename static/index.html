@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TriageBot</title>
+  <style>
+    :root {
+      --bg: #0f1226;
+      --panel: #191d3a;
+      --panel-2: #232850;
+      --text: #e8eaf6;
+      --muted: #9aa0c7;
+      --accent: #7c5cff;
+      --accent-2: #ff5c9d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #2a2f66 0%, var(--bg) 60%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header { padding: 28px 20px 8px; text-align: center; }
+    header h1 {
+      margin: 0; font-size: 2rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    header p { color: var(--muted); margin: 6px 0 0; }
+    main { max-width: 820px; margin: 0 auto; padding: 16px 20px 60px; }
+    .card {
+      background: var(--panel); border: 1px solid #2b3160;
+      border-radius: 14px; padding: 18px; margin-bottom: 18px;
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin: 8px 0 4px; }
+    input, textarea {
+      width: 100%; background: var(--panel-2); border: 1px solid #343a6d;
+      border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 0.95rem;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    button {
+      margin-top: 12px; cursor: pointer; border: none; border-radius: 8px;
+      padding: 10px 16px; font-weight: 600; color: white;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+    button.ghost { background: transparent; border: 1px solid #343a6d; color: var(--muted); }
+    .preview {
+      font-size: 0.85rem; color: var(--muted); margin-top: 12px;
+      padding: 10px; border-radius: 8px; background: var(--panel-2); min-height: 18px;
+    }
+    .issue {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px;
+      border-radius: 10px; background: var(--panel-2); margin-bottom: 10px;
+    }
+    .issue.closed .title { text-decoration: line-through; opacity: 0.6; }
+    .issue .title { font-weight: 600; }
+    .issue .meta { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 700; margin: 0 6px 4px 0;
+    }
+    .s-urgent { background: #ff4d6d33; color: #ff8fa3; }
+    .s-high   { background: #ff9f4333; color: #ffc38a; }
+    .s-medium { background: #7c5cff33; color: #b9a9ff; }
+    .s-low    { background: #4dd0e133; color: #9fe6f2; }
+    .label    { background: #2b3160; color: #c7cbf0; }
+    .owner    { background: #3ddc9733; color: #86f0c4; }
+    .grow { flex: 1; }
+    .row { display: flex; gap: 8px; }
+    .row button { margin-top: 0; padding: 6px 10px; font-size: 0.8rem; }
+    .empty { color: var(--muted); text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TriageBot</h1>
+    <p>Paste an incoming issue — the assistant suggests severity, labels &amp; the likely owner.</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <label for="title">Issue title</label>
+      <input id="title" placeholder="e.g. API returns 500 on login, users cannot sign in" />
+      <label for="body">Body (optional)</label>
+      <textarea id="body" placeholder="Steps to reproduce, stack traces, context..."></textarea>
+      <div class="preview" id="preview">Start typing to see the triage suggestion…</div>
+      <button id="addBtn">Triage &amp; save</button>
+    </div>
+
+    <div id="list"></div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const api = (path, opts) => fetch(path, opts).then((r) => (r.status === 204 ? null : r.json()));
+
+    function badges(issue) {
+      const labels = issue.labels.map((l) => `<span class="badge label">${escapeHtml(l)}</span>`).join("");
+      return `
+        <span class="badge s-${issue.severity}">${issue.severity}</span>
+        ${labels}
+        <span class="badge owner">@${escapeHtml(issue.owner)}</span>`;
+    }
+
+    async function refresh() {
+      const issues = await api("/issues");
+      const list = $("list");
+      if (!issues.length) {
+        list.innerHTML = '<div class="empty">No issues yet. Triage one above.</div>';
+        return;
+      }
+      list.innerHTML = issues
+        .map(
+          (it) => `
+        <div class="issue ${it.status === "closed" ? "closed" : ""}">
+          <input type="checkbox" ${it.status === "closed" ? "checked" : ""}
+                 title="Mark closed" onchange="toggle(${it.id}, this.checked)" />
+          <div class="grow">
+            <div class="title">${escapeHtml(it.title)}</div>
+            <div>${badges(it)}</div>
+            <div class="meta">${escapeHtml(it.reason)}</div>
+          </div>
+          <div class="row">
+            <button class="ghost" onclick="remove(${it.id})">Delete</button>
+          </div>
+        </div>`
+        )
+        .join("");
+    }
+
+    async function add() {
+      const title = $("title").value.trim();
+      if (!title) return;
+      await api("/issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body: $("body").value }),
+      });
+      $("title").value = "";
+      $("body").value = "";
+      $("preview").textContent = "Start typing to see the triage suggestion…";
+      refresh();
+    }
+
+    async function preview() {
+      const title = $("title").value.trim();
+      if (!title) {
+        $("preview").textContent = "Start typing to see the triage suggestion…";
+        return;
+      }
+      const res = await api("/triage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body: $("body").value }),
+      });
+      $("preview").innerHTML =
+        `<b>Suggestion:</b> ${badges(res)}<br/><span style="opacity:.8">${escapeHtml(res.reason)}</span>`;
+    }
+
+    async function toggle(id, closed) {
+      await api(`/issues/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: closed ? "closed" : "open" }),
+      });
+      refresh();
+    }
+
+    async function remove(id) {
+      await api(`/issues/${id}`, { method: "DELETE" });
+      refresh();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    window.toggle = toggle;
+    window.remove = remove;
+    $("addBtn").addEventListener("click", add);
+    let t;
+    const debounced = () => { clearTimeout(t); t = setTimeout(preview, 250); };
+    $("title").addEventListener("input", debounced);
+    $("body").addEventListener("input", debounced);
+    refresh();
+  </script>
+</body>
+</html>
