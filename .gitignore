@@ -21,6 +21,7 @@ taskforge.db
 Thumbs.db
 .idea/
 .vscode/
+.cursor/
 
 # Env files (never commit secrets)
 .env

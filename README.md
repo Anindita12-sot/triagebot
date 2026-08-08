@@ -145,9 +145,6 @@ curl -X POST http://127.0.0.1:8000/triage \
 - **`app/schemas.py`** — Pydantic models = the API contract and input validation.
 - **`app/main.py`** — wires it together and serves the UI.
 
-Design decisions (the *why* behind the *what*) are captured in
-[`constitution.md`](constitution.md).
-
 ## Testing & verification
 
 ```bash
@@ -186,19 +183,6 @@ The server binds to Render's `$PORT` (`uvicorn app.main:app --host 0.0.0.0
 > cold-starts in ~30s), and its filesystem is ephemeral — the SQLite data resets
 > on redeploy/restart, which is fine for a demo.
 
-## Agent engineering
-
-This repo is built and maintained with deliberate AI tooling:
-
-- **Agent rules / constitution:** [`constitution.md`](constitution.md),
-  [`AGENTS.md`](AGENTS.md), and [`.cursor/rules/`](.cursor/rules).
-- **Custom agent:** `triage-maintainer` —
-  [`.cursor/agents/triage-maintainer.md`](.cursor/agents/triage-maintainer.md).
-- **Custom skill:** `triage-rule-authoring` —
-  [`.cursor/skills/triage-rule-authoring/SKILL.md`](.cursor/skills/triage-rule-authoring/SKILL.md).
-
-Both are documented in [`AGENTS_AND_SKILLS.md`](AGENTS_AND_SKILLS.md).
-
 ## Project layout
 
 ```
@@ -210,12 +194,9 @@ KIIT/
 │   ├── schemas.py        # Pydantic API models
 │   └── main.py           # FastAPI app + routes
 ├── static/index.html     # web UI
+├── docs/screenshots/     # demo screenshots (used in this README)
 ├── tests/                # pytest suite
-├── .cursor/              # rules, custom agent, custom skill
 ├── .github/workflows/    # CI/CD
-├── constitution.md       # project constitution (agent rules)
-├── AGENTS.md             # agent operating instructions
-├── AGENTS_AND_SKILLS.md  # custom agent + skill catalog
 ├── requirements.txt      # runtime deps
 ├── requirements-dev.txt  # + tests & lint
 └── pyproject.toml        # tooling config (pytest, ruff)
