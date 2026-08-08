@@ -128,6 +128,24 @@ pull request:
 2. **Smoke** job that installs runtime deps and verifies the app imports and
    constructs.
 
+## Deployment (public URL)
+
+The repo ships a [`render.yaml`](render.yaml) blueprint so the app can run 24/7
+on a free [Render](https://render.com) web service:
+
+1. Sign in to Render with GitHub.
+2. **New → Blueprint**, pick the `triagebot` repo → **Apply**. Render reads
+   `render.yaml` and provisions a free web service.
+3. You get a fixed public URL like `https://triagebot.onrender.com`, and every
+   push to `main` auto-redeploys.
+
+The server binds to Render's `$PORT` (`uvicorn app.main:app --host 0.0.0.0
+--port $PORT`) and exposes `/health` for Render's health checks.
+
+> Note: the free plan sleeps after ~15 min of inactivity (first request then
+> cold-starts in ~30s), and its filesystem is ephemeral — the SQLite data resets
+> on redeploy/restart, which is fine for a demo.
+
 ## Agent engineering
 
 This repo is built and maintained with deliberate AI tooling:
